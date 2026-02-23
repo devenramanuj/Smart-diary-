@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>સ્માર્ટ ડાયરી</title>
+    <style>
+        :root { --primary: #4361ee; --success: #2ec4b6; --danger: #e71d36; --bg: #f8f9fa; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
+        
+        .card { background: white; width: 100%; max-width: 450px; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 15px; box-sizing: border-box; }
+        
+        /* Stats Styling */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .stat-box { padding: 15px; border-radius: 15px; text-align: center; color: white; }
+        .stat-income { background: var(--success); }
+        .stat-expense { background: var(--danger); }
+        .stat-balance { background: var(--primary); grid-column: span 2; }
+        .stat-val { font-size: 20px; font-weight: bold; display: block; }
+        .stat-label { font-size: 12px; opacity: 0.9; }
+
+        textarea { width: 100%; height: 100px; padding: 15px; border: 2px solid #eee; border-radius: 12px; font-size: 16px; margin-bottom: 10px; resize: none; box-sizing: border-box; }
+        .btn { padding: 14px; font-size: 16px; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; width: 100%; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-save { background: var(--primary); color: white; }
+        
+        select { padding: 12px; border-radius: 10px; width: 100%; margin-bottom: 15px; border: 2px solid #eee; }
+        
+        .entry-item { background: white; padding: 15px; border-radius: 15px; margin-bottom: 10px; border-left: 5px solid #ddd; position: relative; }
+        .income-border { border-left-color: var(--success); }
+        .expense-border { border-left-color: var(--danger); }
+        .entry-header { display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 5px; }
+        .entry-cat { font-weight: bold; color: #333; }
+        .del-icon { position: absolute; top: 15px; right: 15px; color: var(--danger); cursor: pointer; }
+        
+        footer { margin-top: 20px; font-size: 11px; color: #aaa; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <div class="card" style="padding: 10px;">
+        <div class="stats-grid">
+            <div class="stat-box stat-income">
+                <span class="stat-label">કુલ આવક</span>
+                <span id="totalIncome" class="stat-val">₹0</span>
+            </div>
+            <div class="stat-box stat-expense">
+                <span class="stat-label">કુલ ખર્ચ</span>
+                <span id="totalExpense" class="stat-val">₹0</span>
+            </div>
+            <div class="stat-box stat-balance">
+                <span class="stat-label">કુલ બચત (Balance)</span>
+                <span id="totalBalance" class="stat-val">₹0</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2 style="margin:0 0 15px 0; font-size: 18px; text-align: center;">🙏 સ્માર્ટ ડાયરી</h2>
+        <textarea id="noteInput" placeholder="દા.ત. 500 પગાર આવ્યો અથવા 100 પેટ્રોલ ભરાવ્યું..."></textarea>
+        <button class="btn btn-save" onclick="saveNote()">📥 સેવ કરો</button>
+    </div>
+
+    <div style="width: 100%; max-width: 450px;">
+        <select id="catFilter" onchange="displayEntries()">
+            <option value="All">બધા વિભાગો</option>
+            <option value="આવક">💰 આવક</option>
+            <option value="ખર્ચ">💸 ખર્ચ</option>
+            <option value="ધાર્મિક">📿 ધાર્મિક</option>
+            <option value="સામાજિક">🤝 સામાજિક</option>
+        </select>
+        <div id="entriesList"></div>
+    </div>
+
+    <footer>Dev By <b>દેવેન્દ્રભાઈ રામાનુજ</b></footer>
+
+    <script>
+        function speak(msg) {
+            window.speechSynthesis.cancel();
+            const speech = new SpeechSynthesisUtterance(msg);
+            speech.lang = "gu-IN";
+            window.speechSynthesis.speak(speech);
+        }
+
+        function saveNote() {
+            let text = document.getElementById('noteInput').value.trim();
+            if(!text) return;
+
+            // રકમ શોધવા માટે (Regex)
+            let amountMatch = text.match(/\d+/);
+            let amount = amountMatch ? parseInt(amountMatch[0]) : 0;
+
+            let category = "સામાન્ય";
+            const keywords = {
+                "આવક": ["પગાર", "વ્યાજ", "નફો", "આવ્યા", "જમા"],
+                "ખર્ચ": ["બિલ", "પેટ્રોલ", "ખરીદી", "શાકભાજી", "દૂધ", "ભાડું", "ખર્ચ", "આપ્યા"],
+                "ધાર્મિક": ["ગીતા", "ભજન", "મંદિર", "પૂજા", "સનાતન"],
+                "સામાજિક": ["લગ્ન", "વ્યવહાર", "પ્રસંગ"]
+            };
+
+            for (let cat in keywords) {
+                if (keywords[cat].some(word => text.includes(word))) {
+                    category = cat; break;
+                }
+            }
+
+            let history = JSON.parse(localStorage.getItem('myDiary')) || [];
+            history.push({ id: Date.now(), timestamp: new Date().toLocaleString('gu-IN'), category, text, amount });
+            localStorage.setItem('myDiary', JSON.stringify(history));
+
+            speak(category + " નોંધ સેવ થઈ ગઈ છે.");
+            document.getElementById('noteInput').value = '';
+            displayEntries();
+        }
+
+        function deleteEntry(id) {
+            if(confirm("કાઢી નાખવું છે?")) {
+                let history = JSON.parse(localStorage.getItem('myDiary')) || [];
+                localStorage.setItem('myDiary', JSON.stringify(history.filter(i => i.id !== id)));
+                displayEntries();
+            }
+        }
+
+        function displayEntries() {
+            let history = JSON.parse(localStorage.getItem('myDiary')) || [];
+            let filter = document.getElementById('catFilter').value;
+            
+            let income = 0, expense = 0;
+            let html = '';
+
+            history.forEach(item => {
+                if (item.category === "આવક") income += item.amount;
+                if (item.category === "ખર્ચ") expense += item.amount;
+
+                if (filter === "All" || item.category === filter) {
+                    let borderClass = item.category === "આવક" ? "income-border" : (item.category === "ખર્ચ" ? "expense-border" : "");
+                    html = `<div class="entry-item ${borderClass}">
+                        <div class="entry-header"><span class="entry-cat">${item.category}</span><span>${item.timestamp}</span></div>
+                        <div style="font-size:15px;">${item.text}</div>
+                        <span class="del-icon" onclick="deleteEntry(${item.id})">🗑️</span>
+                    </div>` + html;
+                }
+            });
+
+            document.getElementById('totalIncome').innerText = "₹" + income;
+            document.getElementById('totalExpense').innerText = "₹" + expense;
+            document.getElementById('totalBalance').innerText = "₹" + (income - expense);
+            document.getElementById('entriesList').innerHTML = html || '<p style="text-align:center;color:#999;">કોઈ નોંધ નથી.</p>';
+        }
+
+        window.onload = displayEntries;
+    </script>
+</body>
+</html>
