@@ -4,13 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>સ્માર્ટ ડાયરી</title>
+
+    <link rel="icon" type="image/png" href="favicon.png?v=1">
+    <link rel="apple-touch-icon" href="favicon.png">
+
     <style>
         :root { --primary: #4361ee; --success: #2ec4b6; --danger: #e71d36; --bg: #f8f9fa; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
         
         .card { background: white; width: 100%; max-width: 450px; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 15px; box-sizing: border-box; }
         
-        /* Stats Styling */
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
         .stat-box { padding: 15px; border-radius: 15px; text-align: center; color: white; }
         .stat-income { background: var(--success); }
@@ -85,7 +88,6 @@
             let text = document.getElementById('noteInput').value.trim();
             if(!text) return;
 
-            // રકમ શોધવા માટે (Regex)
             let amountMatch = text.match(/\d+/);
             let amount = amountMatch ? parseInt(amountMatch[0]) : 0;
 
