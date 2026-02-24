@@ -89,7 +89,7 @@
             let text = document.getElementById('noteInput').value.trim();
             if(!text) return;
 
-            let amountMatch = text.match(/\d+/);
+            let amountMatch = text.replace(/,/g, '').match(/\d+/);
             let amount = amountMatch ? parseInt(amountMatch[0]) : 0;
 
             let category = "સામાન્ય";
