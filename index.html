@@ -116,12 +116,18 @@
         }
 
         function deleteEntry(id) {
-            if(confirm("કાઢી નાખવું છે?")) {
-                let history = JSON.parse(localStorage.getItem('myDiary')) || [];
-                localStorage.setItem('myDiary', JSON.stringify(history.filter(i => i.id !== id)));
-                displayEntries();
-            }
-        }
+    if(confirm("શું તમે આ નોંધ કાઢી નાખવા માંગો છો?")) {
+        let history = JSON.parse(localStorage.getItem('myDiary')) || [];
+        localStorage.setItem('myDiary', JSON.stringify(history.filter(i => i.id !== id)));
+        displayEntries();
+        
+        // થોભો! તરત બોલવાને બદલે 200ms રાહ જુઓ
+        setTimeout(() => {
+            speak("નોંધ કાઢી નાખી છે.");
+        }, 200);
+    }
+}
+
 
         function displayEntries() {
             let history = JSON.parse(localStorage.getItem('myDiary')) || [];
