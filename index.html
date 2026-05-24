@@ -6,11 +6,10 @@
     <title>સ્માર્ટ ડાયરી</title>
 
     <link rel="icon" type="image/x-icon" href="./favicon.png">
-
     <link rel="apple-touch-icon" href="favicon.png">
 
     <style>
-        :root { --primary: #4361ee; --success: #2ec4b6; --danger: #e71d36; --bg: #f8f9fa; }
+        :root { --primary: #4361ee; --success: #2ec4b6; --danger: #e71d36; --warning: #ffb703; --bg: #f8f9fa; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
         
         .card { background: white; width: 100%; max-width: 450px; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); margin-bottom: 15px; box-sizing: border-box; }
@@ -27,11 +26,12 @@
         .btn { padding: 14px; font-size: 16px; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; width: 100%; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .btn-save { background: var(--primary); color: white; }
         
-        select { padding: 12px; border-radius: 10px; width: 100%; margin-bottom: 15px; border: 2px solid #eee; }
+        select { padding: 12px; border-radius: 10px; width: 100%; margin-bottom: 15px; border: 2px solid #eee; font-size: 14px; }
         
         .entry-item { background: white; padding: 15px; border-radius: 15px; margin-bottom: 10px; border-left: 5px solid #ddd; position: relative; }
         .income-border { border-left-color: var(--success); }
         .expense-border { border-left-color: var(--danger); }
+        .general-border { border-left-color: var(--warning); }
         .entry-header { display: flex; justify-content: space-between; font-size: 11px; color: #888; margin-bottom: 5px; }
         .entry-cat { font-weight: bold; color: #333; }
         .del-icon { position: absolute; top: 15px; right: 15px; color: var(--danger); cursor: pointer; }
@@ -71,6 +71,7 @@
             <option value="ખર્ચ">💸 ખર્ચ</option>
             <option value="ધાર્મિક">📿 ધાર્મિક</option>
             <option value="સામાજિક">🤝 સામાજિક</option>
+            <option value="સામાન્ય">📝 સામાન્ય</option>
         </select>
         <div id="entriesList"></div>
     </div>
@@ -85,6 +86,11 @@
             window.speechSynthesis.speak(speech);
         }
 
+        // ગુજરાતી અક્ષરો સરખી રીતે મેચ થાય તે માટે ક્લીન કરવાનું ફંક્શન
+        function cleanText(text) {
+            return text.toLowerCase().replace(/\s+/g, ' ');
+        }
+
         function saveNote() {
             let text = document.getElementById('noteInput').value.trim();
             if(!text) return;
@@ -92,18 +98,23 @@
             let amountMatch = text.replace(/,/g, '').match(/\d+/);
             let amount = amountMatch ? parseInt(amountMatch[0]) : 0;
 
-            let category = "સામાન્ય";
+            // જો કોઈ કીવર્ડ ન મળે અને રકમ હોય, તો ડિફોલ્ટ તેને 'ખર્ચ' ગણવો
+            let category = amount > 0 ? "ખર્ચ" : "સામાન્ય"; 
+            
             const keywords = {
-    "આવક": ["પગાર", "સેલરી", "વ્યાજ", "નફો", "આવ્યા", "જમા", "salary", "pay"],
-    "ખર્ચ": ["બિલ", "પેટ્રોલ", "ખરીદી", "શાકભાજી", "દૂધ", "ભાડું", "ખર્ચ", "આપ્યા", "ઉપાડ"],
-    "ધાર્મિક": ["ગીતા", "ભજન", "મંદિર", "પૂજા", "સનાતન", "પાઠ"],
-    "સામાજિક": ["લગ્ન", "વ્યવહાર", "પ્રસંગ", "ચાંદલો"]
-};
+                "આવક": ["પગાર", "સેલરી", "વ્યાજ", "નફો", "આવ્યા", "જમા", "salary", "pay", "income"],
+                "ખર્ચ": ["બિલ", "પેટ્રોલ", "ખરીદી", "શાકભાજી", "દૂધ", "ભાડું", "ખર્ચ", "આપ્યા", "ઉપાડ", "લીધું", "લીધા", "ખરિદ્યુ", "expense"],
+                "ધાર્મિક": ["ગીતા", "ભજન", "મંદિર", "પૂજા", "સનાતન", "પાઠ", "ધર્મ"],
+                "સામાજિક": ["લગ્ન", "વ્યવહાર", "પ્રસંગ", "ચાંદલો", "મિત્ર"]
+            };
 
+            let cleanedText = cleanText(text);
 
             for (let cat in keywords) {
-                if (keywords[cat].some(word => text.includes(word))) {
-                    category = cat; break;
+                let found = keywords[cat].some(word => cleanedText.includes(word));
+                if (found) {
+                    category = cat;
+                    break;
                 }
             }
 
@@ -117,18 +128,16 @@
         }
 
         function deleteEntry(id) {
-    if(confirm("શું તમે આ નોંધ કાઢી નાખવા માંગો છો?")) {
-        let history = JSON.parse(localStorage.getItem('myDiary')) || [];
-        localStorage.setItem('myDiary', JSON.stringify(history.filter(i => i.id !== id)));
-        displayEntries();
-        
-        // થોભો! તરત બોલવાને બદલે 200ms રાહ જુઓ
-        setTimeout(() => {
-            speak("નોંધ કાઢી નાખી છે.");
-        }, 200);
-    }
-}
-
+            if(confirm("શું તમે આ નોંધ કાઢી નાખવા માંગો છો?")) {
+                let history = JSON.parse(localStorage.getItem('myDiary')) || [];
+                localStorage.setItem('myDiary', JSON.stringify(history.filter(i => i.id !== id)));
+                displayEntries();
+                
+                setTimeout(() => {
+                    speak("નોંધ કાઢી નાખી છે.");
+                }, 200);
+            }
+        }
 
         function displayEntries() {
             let history = JSON.parse(localStorage.getItem('myDiary')) || [];
@@ -138,11 +147,16 @@
             let html = '';
 
             history.forEach(item => {
+                // કેલ્ક્યુલેશન કીવર્ડ આધારિત કેટેગરી પર જ થશે
                 if (item.category === "આવક") income += item.amount;
                 if (item.category === "ખર્ચ") expense += item.amount;
 
                 if (filter === "All" || item.category === filter) {
-                    let borderClass = item.category === "આવક" ? "income-border" : (item.category === "ખર્ચ" ? "expense-border" : "");
+                    let borderClass = "";
+                    if(item.category === "આવક") borderClass = "income-border";
+                    else if(item.category === "ખર્ચ") borderClass = "expense-border";
+                    else if(item.category === "સામાન્ય") borderClass = "general-border";
+
                     html = `<div class="entry-item ${borderClass}">
                         <div class="entry-header"><span class="entry-cat">${item.category}</span><span>${item.timestamp}</span></div>
                         <div style="font-size:15px;">${item.text}</div>
